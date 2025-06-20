@@ -8,7 +8,7 @@ sys.path.append('../module')
 METRICS = ['流水', '实收', '优惠', '订单数']  # 核心统计指标
 PERIOD_TYPES = ['本期', '环比期', '同期']    # 时段类型顺序
 CHANNEL_CATEGORIES = [  # 渠道分类配置
-    {'new_prefix': 'pos小程序', 'parts': ['pos', '甜啦啦小程序']},
+    {'new_prefix': 'pos小程序', 'parts': ['pos', '甜啦啦小程序','甜啦啦小程序-储值业务']},
     {'new_prefix': '抖音', 'parts': ['抖音团购', '抖音小程序','快手团购']},
     {'new_prefix': '美团团购', 'parts': ['美团大众点评团购', '美团大众点评小程序']},
     {'new_prefix': '线上外卖', 'parts': ['美团外卖', '饿了么外卖', '京东外卖']}
@@ -16,7 +16,7 @@ CHANNEL_CATEGORIES = [  # 渠道分类配置
 PRIORITY_ORDER = [  # 指标优先级顺序
     '汇总', 'pos', '美团外卖', '饿了么外卖', '快手团购', '抖音团购',
     '美团大众点评团购', '美团大众点评小程序', '抖音小程序','京东外卖',
-    '甜啦啦小程序','pos小程序','线上外卖','抖音','美团团购'
+    '甜啦啦小程序','甜啦啦小程序-储值业务','pos小程序','线上外卖','抖音','美团团购'
 ]
 
 # ---------------------- 核心功能函数 ----------------------
@@ -45,7 +45,7 @@ def process_sales_data(raw_data: pd.DataFrame, category_config: list,
 
     # 步骤2：计算各渠道营业天数（流水>0的天数）
     def calculate_operating_days(data: pd.DataFrame) -> None:
-        """计算每个渠道的营业天数（原地修改）"""
+        """计算每个渠道的营业天数"""
         print("计算营业天数...")
         for col in data.columns:
             if '流水' in col:
@@ -198,7 +198,7 @@ def save_to_sqlite_db(data: pd.DataFrame, table_name: str, db_path: str) -> None
         db_path: 数据库文件路径
     """
     print(f"开始保存数据到数据库表 {table_name}...")
-    with sqlite3.connect(db_path) as conn:  # 使用上下文管理器自动关闭连接
+    with sqlite3.connect(db_path) as conn: 
         data.to_sql(table_name, conn, if_exists='replace', index=False)
     print(f"数据已成功保存到数据库表 {table_name}.")
 
