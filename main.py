@@ -2,26 +2,29 @@ import pandas as pd
 import sqlite3
 import numpy as np
 import sys
+from cleaning_module import cleaning_sales_data
 sys.path.append('../module')
 
 # ---------------------- 常量定义 ----------------------
 METRICS = ['流水', '实收', '优惠', '订单数']  # 核心统计指标
 PERIOD_TYPES = ['本期', '环比期', '同期']    # 时段类型顺序
 CHANNEL_CATEGORIES = [  # 渠道分类配置
-    {'new_prefix': 'pos小程序', 'parts': ['pos', '甜啦啦小程序','甜啦啦小程序-储值业务']},
-    {'new_prefix': '抖音', 'parts': ['抖音团购', '抖音小程序','快手团购']},
+    {'new_prefix': 'pos小程序', 'parts': ['pos', '甜啦啦小程序']},
     {'new_prefix': '美团团购', 'parts': ['美团大众点评团购', '美团大众点评小程序']},
-    {'new_prefix': '线上外卖', 'parts': ['美团外卖', '饿了么外卖', '京东外卖']}
+    {'new_prefix': '线上外卖', 'parts': ['美团外卖', '饿了么外卖', '京东外卖']},
+    {'new_prefix': '抖音', 'parts': ['抖音团购', '抖音小程序','快手团购']},
 ]
 PRIORITY_ORDER = [  # 指标优先级顺序
-    '汇总', 'pos', '美团外卖', '饿了么外卖', '快手团购', '抖音团购',
-    '美团大众点评团购', '美团大众点评小程序', '抖音小程序','京东外卖',
-    '甜啦啦小程序','甜啦啦小程序-储值业务','pos小程序','线上外卖','抖音','美团团购'
+    '汇总','pos小程序', 'pos','甜啦啦小程序',
+    '美团团购','美团大众点评团购', '美团大众点评小程序',
+    '线上外卖', '美团外卖', '饿了么外卖', '京东外卖',
+    '抖音','快手团购', '抖音团购', '抖音小程序'
 ]
 
 # ---------------------- 核心功能函数 ----------------------
 def process_sales_data(raw_data: pd.DataFrame, category_config: list, 
                       metrics: list, priority_order: list) -> tuple[pd.DataFrame, pd.DataFrame]:
+    #global processed_data
     """
     处理原始销售数据，生成同比分析结果和时段映射表
     
@@ -56,6 +59,7 @@ def process_sales_data(raw_data: pd.DataFrame, category_config: list,
 
     # 步骤3：自动识别时段类型（本期/环比期/同期）
     def identify_period_mapping(data: pd.DataFrame) -> dict:
+       
         """识别查询时段与标准时段类型的映射关系"""
         print("自动识别查询时段...")
         unique_periods = data['查询时段'].unique()
@@ -79,6 +83,7 @@ def process_sales_data(raw_data: pd.DataFrame, category_config: list,
         }
 
     period_mapping = identify_period_mapping(processed_data)
+    print('查询时段识别成功！')
     processed_data['查询时段'] = processed_data['查询时段'].replace(period_mapping)
 
     # 步骤4：创建透视表并整理列名（此时会丢失日期列，因为日期不是聚合字段）
@@ -250,7 +255,6 @@ def filter_monthly_valid_stores(daily_data: pd.DataFrame) -> pd.DataFrame:
     filtered_daily = processed_daily[processed_daily['是否存量'] == '是']
     filtered_daily = filtered_daily.drop(columns=['门店_月份', '是否存量'])
     filtered_daily['日期'] = filtered_daily['日期'].dt.strftime('%Y%m%d')  # 恢复日期格式
-
     print("月度数据处理完成！")
     return filtered_daily
 
@@ -260,10 +264,9 @@ if __name__ == "__main__":
     from load_config import read_config
     config = read_config('config.yaml')
     db_path = config['db_path']
-    input_file = config['input_file_path']
-    
-    print(f"加载配置文件和原始数据从 {input_file}...")
-    raw_sales_data = pd.read_csv(input_file)
+    sales_data = config['sales_data_path']
+    supplemental_data = config['supplemental_data_path']
+    raw_sales_data = cleaning_sales_data(sales_data,supplemental_data)
     raw_sales_data_copy = raw_sales_data.copy()  # 保留原始数据副本用于月度处理
 
     # 执行核心处理逻辑
@@ -279,6 +282,9 @@ if __name__ == "__main__":
     yoy_cunliang_df, _ = process_sales_data(
         monthly_filtered_data, CHANNEL_CATEGORIES, METRICS, PRIORITY_ORDER
     )
+    columns_to_drop = ['本期_年份','本期_月份','同期_年份','同期_月份']
+    #yoy_cunliang_df.drop(columns=list(set(columns_to_drop)), inplace=True)
+    
     print("完成同比数据(存量)分析...")
 
     # 保存结果到数据库
