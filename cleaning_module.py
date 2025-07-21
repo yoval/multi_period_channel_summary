@@ -14,7 +14,17 @@ def cleaning_sales_data(input_file_path: str, supplemental_data_path: str) -> pd
 
     # 1. 加载数据
     sales_df = pd.read_csv(input_file_path)
-    supplement_df = pd.read_csv(supplemental_data_path)
+    try:
+        supplement_df = pd.read_csv(supplemental_data_path)
+        print("补录数据加载成功！")
+    except Exception as e:
+        print(f"加载补充数据时出错: {e}")
+        supplement_df = pd.DataFrame(columns=['门店编号','日期','查询时段',
+            '线上新增美团团购_流水','线上新增美团团购_实收','线上新增美团团购_优惠','线上新增美团团购_订单数',
+            '线上新增抖音团购_流水','线上新增抖音团购_实收','线上新增抖音团购_优惠','线上新增抖音团购_订单数',
+            '线上新增快手团购_流水','线上新增快手团购_实收','线上新增快手团购_优惠','线上新增快手团购_订单数',
+            '新增汇总_流水','新增汇总_实收','新增汇总_优惠','新增汇总_订单数'
+            ])  # 如果加载失败，使用空 DataFrame
 
     # 2. 合并主数据和补充数据
     merge_keys = ['查询时段', '门店编号', '日期']

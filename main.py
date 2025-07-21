@@ -3,7 +3,12 @@ import sqlite3
 import numpy as np
 import sys
 from cleaning_module import cleaning_sales_data
-sys.path.append('../module')
+import yaml
+
+def read_config(config_file):
+    with open(config_file, 'r', encoding='utf-8') as file:
+        config = yaml.safe_load(file)
+    return config
 
 # ---------------------- 常量定义 ----------------------
 METRICS = ['流水', '实收', '优惠', '订单数']  # 核心统计指标
@@ -261,10 +266,11 @@ def filter_monthly_valid_stores(daily_data: pd.DataFrame) -> pd.DataFrame:
 # ---------------------- 主程序执行 ----------------------
 if __name__ == "__main__":
     # 加载配置和原始数据
-    from load_config import read_config
+    
     config = read_config('config.yaml')
     db_path = config['db_path']
     sales_data = config['sales_data_path']
+    # 补充链接
     supplemental_data = config['supplemental_data_path']
     raw_sales_data = cleaning_sales_data(sales_data,supplemental_data)
     raw_sales_data_copy = raw_sales_data.copy()  # 保留原始数据副本用于月度处理
@@ -282,13 +288,21 @@ if __name__ == "__main__":
     yoy_cunliang_df, _ = process_sales_data(
         monthly_filtered_data, CHANNEL_CATEGORIES, METRICS, PRIORITY_ORDER
     )
-    columns_to_drop = ['本期_年份','本期_月份','同期_年份','同期_月份']
-    #yoy_cunliang_df.drop(columns=list(set(columns_to_drop)), inplace=True)
-    
+    try:
+        columns_to_drop = ['本期_年份','本期_月份','同期_年份','同期_月份']
+        yoy_cunliang_df.drop(columns=list(set(columns_to_drop)), inplace=True)
+    except:
+        pass
     print("完成同比数据(存量)分析...")
+
+    from addition import calculate_goals
+    with sqlite3.connect(db_path) as conn: 
+        goal_df = pd.read_sql_query("SELECT * FROM goal", conn)
+    additional_goals_df = calculate_goals(yoy_analysis_df, goal_df, period_mapping_df)
 
     # 保存结果到数据库
     save_to_sqlite_db(yoy_analysis_df, '同比数据', db_path)
     save_to_sqlite_db(yoy_cunliang_df, '同比数据(存量)', db_path)
     save_to_sqlite_db(period_mapping_df, '期数', db_path)   
+    save_to_sqlite_db(additional_goals_df, '目标数据', db_path)   
     print("所有数据已同步至数据库")
