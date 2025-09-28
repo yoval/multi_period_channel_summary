@@ -1,7 +1,6 @@
 WITH period_table AS (
-    SELECT '20240101' AS start_date, '20240430' AS end_date UNION ALL
-    SELECT '20240901' AS start_date, '20240901' AS end_date UNION ALL
-    SELECT '20250101' AS start_date, '20250430' AS end_date
+    SELECT '20240901' AS start_date, '20240927' AS end_date UNION ALL
+    SELECT '20250901' AS start_date, '20250927' AS end_date
 )
 SELECT
     CONCAT(pt.start_date, '~', pt.end_date) AS 查询时段,
